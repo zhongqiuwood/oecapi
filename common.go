@@ -232,33 +232,3 @@ func initKey(key string) (*ecdsa.PrivateKey, common.Address){
 	return privateKey, senderAddress
 }
 
-
-
-//func multiple(m *big.Int, n int64) *big.Int {
-//	t := big.NewInt(0)
-//	return t.Mul(m, big.NewInt(n))
-//}
-
-//
-//func decToken(m int64, n int64) *big.Int {
-//	multiple(oneToken, m)
-//	multiple(zeroPointOneToken, n)
-//
-//	t := big.NewInt(0)
-//	t.Add(multiple(oneToken, m), multiple(zeroPointOneToken, n))
-//
-//	return t
-//}
-//
-//func decToken2(m int64, n1 int64, n2 int64) *big.Int {
-//	multiple(oneToken, m)
-//	multiple(zeroPointOneToken, n1)
-//
-//	t := big.NewInt(0)
-//	t.Add(multiple(oneToken, m), multiple(zeroPointOneToken, n1))
-//	t.Add(t, multiple(big.NewInt(1e16), n2))
-//
-//	return t
-//}
-
-
