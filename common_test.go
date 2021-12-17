@@ -7,6 +7,27 @@ import (
 	"time"
 )
 
+type TaskScheduler struct {
+	expectedId int
+	taskChan chan task
+	sortChan chan task
+	abciChan chan task
+}
+
+func newTaskScheduler(part1RoutineNum int) *TaskScheduler {
+	ts := &TaskScheduler{}
+	ts.taskChan = make(chan task, 10000)
+	ts.sortChan = make(chan task, 10000)
+	ts.abciChan = make(chan task, 10000)
+
+	for i := 0; i < part1RoutineNum; i++ {
+		go ts.part1Routine()
+	}
+	go ts.sortRoutine()
+	go ts.abciRoutine()
+	return ts
+}
+
 type task interface {
 	part1()
 	part2()
@@ -20,30 +41,26 @@ type taskImp struct {
 	wg *sync.WaitGroup
 }
 
-var taskChan chan task = make(chan task, 10000)
-var sortChan chan task = make(chan task, 10000)
-var abciChan chan task = make(chan task, 10000)
-var expectedId int = 0
 
-func part1Routine()  {
-	for t := range taskChan {
+func (ts *TaskScheduler) part1Routine()  {
+	for t := range ts.taskChan {
 		t.part1()
-		sortChan <- t
+		ts.sortChan <- t
 	}
 }
 
 
-func sortRoutine()  {
+func (ts *TaskScheduler) sortRoutine()  {
 	var taskMap = make(map[int]task)
-	for t := range sortChan {
-		if t.id() == expectedId {
-			abciChan <- t
-			expectedId++
+	for t := range ts.sortChan {
+		if t.id() == ts.expectedId {
+			ts.abciChan <- t
+			ts.expectedId++
 			for {
-				if next, ok := taskMap[expectedId]; ok {
-					abciChan <- next
-					delete(taskMap, expectedId)
-					expectedId++
+				if next, ok := taskMap[ts.expectedId]; ok {
+					ts.abciChan <- next
+					delete(taskMap, ts.expectedId)
+					ts.expectedId++
 				} else {
 					break
 				}
@@ -54,8 +71,8 @@ func sortRoutine()  {
 	}
 }
 
-func abciRoutine()  {
-	for t := range abciChan {
+func (ts *TaskScheduler) abciRoutine()  {
+	for t := range ts.abciChan {
 		t.part2()
 	}
 }
@@ -83,32 +100,24 @@ func (t *taskImp) part2() {
 	t.wg.Done()
 }
 
-func initRoutine()  {
-	part1RoutineNum := 30
-	for i := 0; i < part1RoutineNum; i++ {
-		go part1Routine()
-	}
-	go sortRoutine()
-	go abciRoutine()
-}
 
-func run(block int, taskNum int)  {
-	expectedId = 0
+func (ts *TaskScheduler) run(block int, taskNum int)  {
+	ts.expectedId = 0
 	var wg sync.WaitGroup
 	wg.Add(taskNum)
 	for i := 0; i < taskNum; i++ {
 		task := newTask(block, i, &wg)
-		taskChan <- task
+		ts.taskChan <- task
 	}
 	wg.Wait()
 }
 
-func TestTask(t *testing.T) {
-	initRoutine()
+func TestTaskScheduler(t *testing.T) {
+	ts := newTaskScheduler(30)
 
 	// block 1
-	run(1, 50)
+	ts.run(1, 50)
 
 	// block 2
-	run(2, 100)
+	ts.run(2, 100)
 }
